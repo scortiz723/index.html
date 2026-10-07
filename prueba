@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catálogo de Tenis | Bajo Pedido</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+    body { background-color: #f4f4f7; color: #333; padding: 20px; }
+    header { text-align: center; margin-bottom: 30px; }
+    h1 { font-size: 2.2rem; margin-bottom: 8px; color: #111; }
+    p.subtitle { color: #666; font-size: 0.95rem; }
+    
+    .search-container { max-width: 600px; margin: 20px auto; display: flex; gap: 10px; }
+    input[type="text"] { flex: 1; padding: 12px 16px; border: 2px solid #ddd; border-radius: 8px; font-size: 1rem; outline: none; transition: border 0.2s; }
+    input[type="text"]:focus { border-color: #000; }
+    button.btn-search { padding: 12px 24px; background: #000; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+    .card { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; padding: 16px; transition: transform 0.2s; }
+    .card:hover { transform: translateY(-4px); }
+    .card img { width: 100%; height: 180px; object-fit: contain; margin-bottom: 12px; }
+    .card-title { font-size: 1rem; font-weight: bold; margin-bottom: 6px; color: #111; line-height: 1.3; }
+    .card-subtitle { font-size: 0.8rem; color: #777; margin-bottom: 12px; }
+    
+    .btn-ws { display: block; width: 100%; padding: 10px; background: #25D366; color: #fff; text-align: center; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 0.9rem; transition: background 0.2s; }
+    .btn-ws:hover { background: #1ebc57; }
+    
+    .loading { text-align: center; grid-column: 1 / -1; font-weight: bold; color: #666; margin: 40px 0; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Catálogo de Sneakers</h1>
+    <p class="subtitle">Importación sobre pedido directa desde plataformas verificadas (StockX / GOAT)</p>
+    
+    <div class="search-container">
+      <input type="text" id="searchInput" placeholder="Ej: Jordan 4, Yeezy 350, Dunk Low..." value="Jordan 4">
+      <button class="btn-search" onclick="buscarTenis()">Buscar</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="resultsGrid" class="grid">
+      <!-- Los tenis cargados aparecerán aquí -->
+    </div>
+  </main>
+
+  <script>
+    // Configura aquí tu número de WhatsApp (con código de país, ej. 5211234567890 para México)
+    const MI_WHATSAPP = "5210000000000";
+
+    async function buscarTenis() {
+      const query = document.getElementById('searchInput').value.trim();
+      const grid = document.getElementById('resultsGrid');
+
+      if (!query) return;
+
+      grid.innerHTML = '<div class="loading">Cargando modelos de StockX...</div>';
+
+      try {
+        const response = await fetch(
+          'https://e388-dsn.algolia.net/1/indexes/products/query?x-algolia-agent=Algolia%20for%20JavaScript%20(4.13.0)%3B%20Browser&x-algolia-api-key=6bfb5050d0320c15e92f14d20fe55b92&x-algolia-application-id=E388',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ params: `query=${encodeURIComponent(query)}&hitsPerPage=16` })
+          }
+        );
+
+        const data = await response.json();
+
+        if (!data.hits || data.hits.length === 0) {
+          grid.innerHTML = '<div class="loading">No se encontraron modelos con esa búsqueda.</div>';
+          return;
+        }
+
+        grid.innerHTML = ''; // Limpiar loader
+
+        data.hits.forEach(item => {
+          const title = item.title || item.shoe || 'Sneaker';
+          const styleId = item.styleId || 'N/A';
+          const img = item.media?.imageUrl || item.media?.smallImageUrl || item.media?.thumbUrl || 'https://via.placeholder.com/200';
+          
+          // Crear mensaje personalizado para WhatsApp
+          const msjWhatsApp = encodeURIComponent(`Hola, me interesa cotizar el modelo: ${title} (SKU: ${styleId}). ¿Qué precio tiene en mi talla?`);
+          const urlWhatsApp = `https://wa.me/${MI_WHATSAPP}?text=${msjWhatsApp}`;
+
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `
+            <div>
+              <img src="${img}" alt="${title}" loading="lazy" />
+              <div class="card-title">${title}</div>
+              <div class="card-subtitle">SKU: ${styleId}</div>
+            </div>
+            <a href="${urlWhatsApp}" target="_blank" class="btn-ws">Cotizar por WhatsApp</a>
+          `;
+          
+          grid.appendChild(card);
+        });
+
+      } catch (error) {
+        grid.innerHTML = '<div class="loading">Error al conectar con la base de datos de pares. Intenta de nuevo.</div>';
+      }
+    }
+
+    // Permitir buscar al presionar Enter
+    document.getElementById('searchInput').addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') buscarTenis();
+    });
+
+    // Carga inicial automática
+    buscarTenis();
+  </script>
+
+</body>
+</html>
